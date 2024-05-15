@@ -16,3 +16,18 @@
 #    pipelines:
 #      traces:
 #        exporters: [spanmetrics, otlphttp/example]
+
+exporters:
+  otlphttp/newrelic:
+    endpoint: https://otlp.nr-data.net:4318
+    headers:
+      api-key: {{Your New Relic License Key}}
+
+service:
+  pipelines:
+    traces:
+      exporters: [spanmetrics, otlphttp/newrelic]
+    metrics:
+      exporters: [otlphttp/newrelic]
+    logs:
+      exporters: [otlphttp/newrelic]
