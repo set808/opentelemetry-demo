@@ -1,6 +1,7 @@
 // Copyright The OpenTelemetry Authors
 // SPDX-License-Identifier: Apache-2.0
 
+const newrelic = require("newrelic");
 import Document, { DocumentContext, Html, Head, Main, NextScript } from 'next/document';
 import { ServerStyleSheet } from 'styled-components';
 import {context, propagation} from "@opentelemetry/api";
@@ -19,6 +20,9 @@ export default class MyDocument extends Document<{ envString: string }> {
         });
 
       const initialProps = await Document.getInitialProps(ctx);
+      const browserTimingHeader = newrelic.getBrowserTimingHeader({
+        hasToRemoveScriptWrapper: true,
+      });
       const baggage = propagation.getBaggage(context.active());
       const isSyntheticRequest = baggage?.getEntry('synthetic_request')?.value === 'true';
 
@@ -35,6 +39,7 @@ export default class MyDocument extends Document<{ envString: string }> {
         };`;
       return {
         ...initialProps,
+        browserTimingHeader,
         styles: [initialProps.styles, sheet.getStyleElement()],
         envString,
       };
@@ -47,6 +52,10 @@ export default class MyDocument extends Document<{ envString: string }> {
     return (
       <Html>
         <Head>
+          <script
+            type="text/javascript"
+            dangerouslySetInnerHTML={{ __html: this.props.browserTimingHeader }}
+          />
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
           <link
