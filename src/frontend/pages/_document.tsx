@@ -1,15 +1,18 @@
-// Copyright The OpenTelemetry Authors
-// SPDX-License-Identifier: Apache-2.0
-
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const newrelic = require("newrelic");
-import Document, { DocumentContext, Html, Head, Main, NextScript } from 'next/document';
+import Document, { DocumentContext, DocumentInitialProps, Html, Head, Main, NextScript } from 'next/document';
 import { ServerStyleSheet } from 'styled-components';
-import {context, propagation} from "@opentelemetry/api";
+import { context, propagation } from "@opentelemetry/api";
 
-const { ENV_PLATFORM, WEB_OTEL_SERVICE_NAME, PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, OTEL_COLLECTOR_HOST} = process.env;
+const { ENV_PLATFORM, WEB_OTEL_SERVICE_NAME, PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, OTEL_COLLECTOR_HOST } = process.env;
 
-export default class MyDocument extends Document<{ envString: string }> {
-  static async getInitialProps(ctx: DocumentContext) {
+interface MyDocumentInitialProps extends DocumentInitialProps {
+  browserTimingHeader: string;
+  envString: string;
+}
+
+export default class MyDocument extends Document<MyDocumentInitialProps> {
+  static async getInitialProps(ctx: DocumentContext): Promise<MyDocumentInitialProps> {
     const sheet = new ServerStyleSheet();
     const originalRenderPage = ctx.renderPage;
 
@@ -37,6 +40,7 @@ export default class MyDocument extends Document<{ envString: string }> {
           NEXT_PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: '${otlpTracesEndpoint}',
           IS_SYNTHETIC_REQUEST: '${isSyntheticRequest}',
         };`;
+        
       return {
         ...initialProps,
         browserTimingHeader,
