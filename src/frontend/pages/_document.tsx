@@ -1,14 +1,18 @@
-// Copyright The OpenTelemetry Authors
-// SPDX-License-Identifier: Apache-2.0
-
-import Document, { DocumentContext, Html, Head, Main, NextScript } from 'next/document';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const newrelic = require("newrelic");
+import Document, { DocumentContext, DocumentInitialProps, Html, Head, Main, NextScript } from 'next/document';
 import { ServerStyleSheet } from 'styled-components';
-import {context, propagation} from "@opentelemetry/api";
+import { context, propagation } from "@opentelemetry/api";
 
-const { ENV_PLATFORM, WEB_OTEL_SERVICE_NAME, PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, OTEL_COLLECTOR_HOST} = process.env;
+const { ENV_PLATFORM, WEB_OTEL_SERVICE_NAME, PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, OTEL_COLLECTOR_HOST } = process.env;
 
-export default class MyDocument extends Document<{ envString: string }> {
-  static async getInitialProps(ctx: DocumentContext) {
+interface MyDocumentInitialProps extends DocumentInitialProps {
+  browserTimingHeader: string;
+  envString: string;
+}
+
+export default class MyDocument extends Document<MyDocumentInitialProps> {
+  static async getInitialProps(ctx: DocumentContext): Promise<MyDocumentInitialProps> {
     const sheet = new ServerStyleSheet();
     const originalRenderPage = ctx.renderPage;
 
@@ -19,6 +23,9 @@ export default class MyDocument extends Document<{ envString: string }> {
         });
 
       const initialProps = await Document.getInitialProps(ctx);
+      const browserTimingHeader = newrelic.getBrowserTimingHeader({
+        hasToRemoveScriptWrapper: true,
+      });
       const baggage = propagation.getBaggage(context.active());
       const isSyntheticRequest = baggage?.getEntry('synthetic_request')?.value === 'true';
 
@@ -33,8 +40,10 @@ export default class MyDocument extends Document<{ envString: string }> {
           NEXT_PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: '${otlpTracesEndpoint}',
           IS_SYNTHETIC_REQUEST: '${isSyntheticRequest}',
         };`;
+        
       return {
         ...initialProps,
+        browserTimingHeader,
         styles: [initialProps.styles, sheet.getStyleElement()],
         envString,
       };
@@ -47,6 +56,10 @@ export default class MyDocument extends Document<{ envString: string }> {
     return (
       <Html>
         <Head>
+          <script
+            type="text/javascript"
+            dangerouslySetInnerHTML={{ __html: this.props.browserTimingHeader }}
+          />
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
           <link
